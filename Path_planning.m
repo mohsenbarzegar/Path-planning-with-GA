@@ -50,10 +50,16 @@ endP = swap(2,:);
 % Plot begin and end point
 scatter(beginP(1), beginP(2),40, 'red', 'filled','s');
 scatter(endP(1), endP(2),40, 'blue', 'filled','s');
-
+min_dis = Path_length([beginP; endP]);
+disp("minimum distance is: " + min_dis);
+disp(".");
+disp("..");
+disp("...");
 %% Initialize population
-pop_num = 100;
-init_num = 50;
+pop_num = 50;
+init_num = 25;
+famous = 100*ones(pop_num/5,12);
+
 y_best = (endP(2)-beginP(2))/9*(1:9) + beginP(2);
 
 pop = zeros(init_num,9);
@@ -84,16 +90,42 @@ for j=1:init_num
         end
         k = k+1;
     end
-    plot(x_val, pop(j,:));
+%     plot(x_val, pop(j,:));
 end
 disp(toc + " Second primary papulation generating taked!!")
 % pop = [pop; zeros(pop_num-init_num,9)];
-
+swap = CrossOver(pop, pop_num-init_num);
+swap = Rm_wr_child(pgon, x_val, swap);
+disp("primary population cost values");
+costs = Cost_func(O_loc, pop, x_val);
+pop = [pop; swap];
+Draw_path(pgon, x_val, pop);
 %% Main Loop (Cost Assignment, Selection, Cross Over and Mutation)
-cost = Cost_func(O_loc, pop, x_val);
-figure
-hist(cost)
-%% 
-% points = [[20 22];[80, 75]];
-% collision = Collision_detect(pgon(1),points)
-% Draw_path(points);
+cnt = 0;
+it_num = 500;
+results = zeros(it_num, 4);
+for i=1:it_num
+    disp("Iteration " + i + "  ====================>");
+    [costs,results(i,2), results(i,3), results(i,4)] = Cost_func(O_loc, pop, x_val);
+    rank = Sort_Costs(costs);
+    results(i,1) = costs(rank(1));
+    disp("Minimum error " + costs(rank(1)));
+    famous = Hall_of_fame(pop, costs, rank, famous);
+    pop = Path_Selection(rank, pop, init_num);
+    swap = CrossOver(pop, pop_num-init_num);
+    swap = Mutation(swap,cnt);
+    swap = Rm_wr_child(pgon, x_val, swap);
+    pop = [pop; swap];
+%     size(pop,1)
+    cnt = cnt+1;
+end
+
+Draw_path(pgon, x_val, famous(:,2:end));
+figure('Name', "min costs");
+plot(1:it_num, results(:,1));
+figure('Name', "min length");
+plot(1:it_num, results(:,2), 1:it_num, min_dis*ones(1,it_num));
+figure('Name', "min angle");
+plot(1:it_num, results(:,3));
+figure('Name', "min distance");
+plot(1:it_num, results(:,4));
